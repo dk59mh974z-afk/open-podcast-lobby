@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Open Podcast Lobby</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #05060a;
+      color: #f5f5f5;
+    }
+    * { box-sizing: border-box; }
+
+    /* ===== COMMON ===== */
+    h1, h2 { margin: 0 0 12px; }
+    input, button { font: inherit; }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 16px;
+    }
+    .hidden {
+      display: none;
+    }
+
+    /* ===== LANDING PAGE ===== */
+    #landing {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .tagline {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 32px;
+    }
+    .landing-section {
+      margin-bottom: 24px;
+    }
+    .landing-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .landing-input-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .landing-input-row input[type="text"] {
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #33384a;
+      background: #070915;
+      color: #f5f5f5;
+      min-width: 200px;
+    }
+    .primary-btn {
+      background: #2f6bff;
+      color: white;
+    }
+    .secondary-btn {
+      background: #222534;
+      color: #ddd;
+    }
+
+    /* ===== ROOM PAGE ===== */
+    #room {
+      min-height: 100vh;
+      display: none; /* hidden by default; JS will show it */
+      flex-direction: column;
+      padding: 16px;
+    }
+    .room-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .small-text {
+      font-size: 12px;
+      color: #aaa;
+    }
+    .room-main {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .panel {
+      border-radius: 6px;
+      border: 1px solid #20222b;
+      padding: 10px;
+      background: #10121b;
+    }
+    .panel-title {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .field-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .field-row input[type="text"] {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid #33384a;
+      background: #070915;
+      color: #f5f5f5;
+    }
+    #messages {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+    #messages li {
+      padding: 3px 4px;
+      border-bottom: 1px solid #1b1e28;
+    }
+    #messages li.system {
+      color: #999;
+      font-style: italic;
+    }
+    #messages li.chat-line {
+      color: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== PAGE 1: LANDING (VISIBLE ON LOAD) ========== -->
+  <section id="landing">
+    <div class="logo">Open Podcast Lobby</div>
+    <div class="tagline">A simple place to host live voice discussions with anyone.</div>
+
+    <!-- HOST -->
+    <div class="landing-section">
+      <div class="landing-title">Host a Podcast</div>
+      <div class="small-text">Create a new room and share the ID with your guests.</div>
+      <button id="landingCreateButton" class="primary-btn">Create Room</button>
+    </div>
+
+    <!-- JOIN -->
+    <div class="landing-section">
+      <div class="landing-title">Join a Podcast</div>
+      <div class="small-text">Enter a room ID shared by the host.</div>
+      <div class="landing-input-row">
+        <input id="landingJoinInput" type="text" placeholder="Room ID">
+        <button id="landingJoinButton" class="secondary-btn">Join Room</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PAGE 2: ROOM (HIDDEN INITIALLY) ========== -->
+  <section id="room">
+    <div class="room-header">
+      <div>
+        <div><strong>Open Podcast Lobby</strong></div>
+        <div id="roomHeaderInfo" class="small-text">Room: (none)</div>
+      </div>
+      <div id="nameDisplay" class="small-text">Name: (not set)</div>
+    </div>
+
+    <div class="room-main">
+      <!-- Name + audio -->
+      <div class="panel">
+        <div class="panel-title">Your setup</div>
+
+        <div class="field-row">
+          <input id="nameInput" type="text" placeholder="Enter your name">
+          <button id="setNameButton" class="secondary-btn">Set name</button>
+        </div>
+
+        <div class="field-row">
+          <button id="startAudioButton" class="primary-btn">Start Mic & Connect</button>
+          <button id="stopAudioButton" class="secondary-btn">Turn Off Mic</button>
+          <button id="exitRoomButton" class="secondary-btn">Exit Room</button>
+        </div>
+        <div id="audioStatus" class="small-text"></div>
+      </div>
+
+      <!-- Chat -->
+      <div class="panel">
+        <div class="panel-title">Chat</div>
+        <div class="field-row">
+          <input id="chatInput" type="text" placeholder="Type a message">
+          <button id="chatSendButton" class="primary-btn">Send</button>
+        </div>
+        <ul id="messages"></ul>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ======================
+    // DOM ELEMENT REFERENCES
+    // ======================
+
+    // Landing
+    const landingSection = document.getElementById('landing');
+    const landingCreateButton = document.getElementById('landingCreateButton');
+    const landingJoinInput = document.getElementById('landingJoinInput');
+    const landingJoinButton = document.getElementById('landingJoinButton');
+
+    // Room
+    const roomSection = document.getElementById('room');
+    const roomHeaderInfo = document.getElementById('roomHeaderInfo');
+    const nameDisplay = document.getElementById('nameDisplay');
+
+    const nameInput = document.getElementById('nameInput');
+    const setNameButton = document.getElementById('setNameButton');
+
+    const startAudioButton = document.getElementById('startAudioButton');
+    const stopAudioButton = document.getElementById('stopAudioButton');
+    const exitRoomButton = document.getElementById('exitRoomButton');
+    const audioStatus = document.getElementById('audioStatus');
+
+    const chatInput = document.getElementById('chatInput');
+    const chatSendButton = document.getElementById('chatSendButton');
+    const messagesList = document.getElementById('messages');
+
+    // ======================
+    // STATE VARIABLES
+    // ======================
+    let currentRoomId = null;
+    let localStream = null;
+    let peerConnection = null;
+    let isMicMuted = false;
+    let userName = 'Anonymous';
+
+    // ======================
+    // WEBSOCKET INITIALIZATION
+    // ======================
+    const socket = new WebSocket(`ws://${location.host}`);
+
+    socket.addEventListener('open', () => {
+      addSystemMessage('Connected to real-time server.');
+    });
+
+    socket.addEventListener('message', async event => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'create-room') {
+        addSystemMessage('Room created: ' + data.roomId);
+      } else if (data.type === 'join-room') {
+        addSystemMessage('Someone joined room: ' + data.roomId);
+      } else if (data.type === 'leave-room') {
+        addSystemMessage('Someone left room: ' + data.roomId);
+
+      // TEXT CHAT
+      } else if (data.type === 'chat-message') {
+        const name = data.name || 'Anonymous';
+        addChatLine(name + ': ' + data.text);
+
+      // WEBRTC SIGNALING
+      } else if (data.type === 'offer') {
+        addSystemMessage('Received offer, creating answer...');
+        await handleOffer(data.payload);
+      } else if (data.type === 'answer') {
+        addSystemMessage('Received answer, completing connection.');
+        await handleAnswer(data.payload);
+      } else if (data.type === 'ice-candidate') {
+        await handleIceCandidate(data.payload);
+
+      } else if (data.type === 'info') {
+        addSystemMessage(data.text);
+      } else {
+        addSystemMessage('Unknown message: ' + event.data);
+      }
+    });
+
+    socket.addEventListener('close', () => {
+      addSystemMessage('Disconnected from server.');
+    });
+
+    // ======================
+    // LANDING HANDLERS
+    // ======================
+    landingCreateButton.addEventListener('click', () => {
+      const roomId = Math.random().toString(36).substring(2, 8);
+      enterRoom(roomId, true);
+    });
+
+    landingJoinButton.addEventListener('click', () => {
+      const roomId = landingJoinInput.value.trim();
+      if (!roomId) {
+        alert('Please enter a room ID.');
+        return;
+      }
+      enterRoom(roomId, false);
+    });
+
+    function enterRoom(roomId, isHost) {
+      currentRoomId = roomId;
+
+      const msg = {
+        type: isHost ? 'create-room' : 'join-room',
+        roomId: roomId
+      };
+      socket.send(JSON.stringify(msg));
+
+      roomHeaderInfo.textContent = 'Room: ' + roomId;
+
+      // switch UI: hide landing, show room
+      landingSection.style.display = 'none';
+      roomSection.style.display = 'flex';
+
+      addSystemMessage((isHost ? 'You created' : 'You joined') + ' room: ' + roomId);
+    }
+
+    // ======================
+    // NAME HANDLER
+    // ======================
+    setNameButton.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      if (!name) {
+        addSystemMessage('Please enter a non-empty name.');
+        return;
+      }
+      userName = name;
+      nameDisplay.textContent = 'Name: ' + userName;
+      addSystemMessage('Name set to: ' + userName);
+    });
+
+    // ======================
+    // AUDIO / WEBRTC HANDLERS
+    // ======================
+    startAudioButton.addEventListener('click', async () => {
+      if (!currentRoomId) {
+        audioStatus.textContent = 'Join or create a room first.';
+        return;
+      }
+
+      // If already set up, just unmute
+      if (localStream && peerConnection) {
+        localStream.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+        isMicMuted = false;
+        audioStatus.textContent = 'Mic active.';
+        return;
+      }
+
+      // First-time setup
+      try {
+        if (!localStream) {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          localStream.getAudioTracks().forEach(track => {
+            track.enabled = true;
+          });
+        }
+        setupPeerConnection();
+        await createAndSendOffer();
+        audioStatus.textContent = 'Mic active.';
+        isMicMuted = false;
+      } catch (e) {
+        audioStatus.textContent = 'Mic permission denied.';
+      }
+    });
+
+    stopAudioButton.addEventListener('click', () => {
+      stopAudio();
+    });
+
+    exitRoomButton.addEventListener('click', () => {
+      if (!currentRoomId) {
+        addSystemMessage('You are not in a room.');
+        return;
+      }
+
+      const msg = {
+        type: 'leave-room',
+        roomId: currentRoomId
+      };
+      socket.send(JSON.stringify(msg));
+
+      addSystemMessage('You left room: ' + currentRoomId);
+      currentRoomId = null;
+      roomHeaderInfo.textContent = 'Room: (none)';
+
+      endCall();
+
+      // switch UI back: hide room, show landing
+      roomSection.style.display = 'none';
+      landingSection.style.display = 'flex';
+    });
+
+    // ======================
+    // CHAT HANDLERS
+    // ======================
+    chatSendButton.addEventListener('click', () => {
+      sendChatMessage();
+    });
+
+    chatInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        sendChatMessage();
+      }
+    });
+
+    function sendChatMessage() {
+      if (!currentRoomId) {
+        addSystemMessage('You must be in a room to chat.');
+        return;
+      }
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      const msg = {
+        type: 'chat-message',
+        text: text,
+        name: userName
+      };
+      socket.send(JSON.stringify(msg));
+      chatInput.value = '';
+    }
+
+    // ======================
+    // UI MESSAGE HELPERS
+    // ======================
+    function addSystemMessage(text) {
+      const li = document.createElement('li');
+      li.textContent = text;
+      li.classList.add('system');
+      messagesList.appendChild(li);
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    function addChatLine(text) {
+      const li = document.createElement('li');
+      li.textContent = text;
+      li.classList.add('chat-line');
+      messagesList.appendChild(li);
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    // ======================
+    // WEBRTC FUNCTIONS
+    // ======================
+    function setupPeerConnection() {
+      if (peerConnection) return;
+      peerConnection = new RTCPeerConnection();
+
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+          socket.send(JSON.stringify({
+            type: 'ice-candidate',
+            payload: event.candidate
+          }));
+        }
+      };
+
+      peerConnection.ontrack = event => {
+        const audio = document.createElement('audio');
+        audio.autoplay = true;
+        audio.srcObject = event.streams[0];
+        document.body.appendChild(audio);
+        audioStatus.textContent = 'Receiving audio.';
+      };
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream);
+        });
+      }
+    }
+
+    async function createAndSendOffer() {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.send(JSON.stringify({
+        type: 'offer',
+        payload: offer
+      }));
+      addSystemMessage('Sent offer.');
+    }
+
+    async function handleOffer(offer) {
+      setupPeerConnection();
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      if (!localStream) {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          localStream.getAudioTracks().forEach(track => {
+            track.enabled = true;
+          });
+          audioStatus.textContent = 'Mic active (answering).';
+          localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+          });
+        } catch (e) {
+          audioStatus.textContent = 'Mic permission denied.';
+          return;
+        }
+      }
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.send(JSON.stringify({
+        type: 'answer',
+        payload: answer
+      }));
+      addSystemMessage('Sent answer.');
+    }
+
+    async function handleAnswer(answer) {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    }
+
+    async function handleIceCandidate(candidate) {
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error('Error adding received ice candidate', e);
+      }
+    }
+
+    // ======================
+    // AUDIO CONTROL HELPERS
+    // ======================
+    function stopAudio() {
+      if (localStream) {
+        localStream.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+        isMicMuted = true;
+        audioStatus.textContent = 'Mic muted. You can still hear others.';
+      } else {
+        audioStatus.textContent = 'No mic stream to mute.';
+      }
+    }
+
+    function endCall() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      isMicMuted = false;
+      audioStatus.textContent = '';
+    }
+  </script>
+</body>
+</html>
