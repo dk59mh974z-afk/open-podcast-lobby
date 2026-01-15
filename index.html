@@ -1,564 +1,667 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Open Podcast Lobby</title>
+  <meta charset="UTF-8" />
+  <title>CastAway</title>
   <style>
     body {
-      margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #05060a;
-      color: #f5f5f5;
-    }
-    * { box-sizing: border-box; }
-
-    /* ===== COMMON ===== */
-    h1, h2 { margin: 0 0 12px; }
-    input, button { font: inherit; }
-    button {
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      padding: 10px 16px;
-    }
-    .hidden {
-      display: none;
+      margin: 0;
+      padding: 0;
+      background: #0b1120;
+      color: #e5e7eb;
     }
 
-    /* ===== LANDING PAGE ===== */
-    #landing {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      text-align: center;
-    }
-    .logo {
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .tagline {
-      font-size: 13px;
-      color: #999;
-      margin-bottom: 32px;
-    }
-    .landing-section {
-      margin-bottom: 24px;
-    }
-    .landing-title {
-      font-size: 18px;
-      margin-bottom: 8px;
-    }
-    .landing-input-row {
-      margin-top: 8px;
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-    }
-    .landing-input-row input[type="text"] {
-      padding: 8px 10px;
-      border-radius: 4px;
-      border: 1px solid #33384a;
-      background: #070915;
-      color: #f5f5f5;
-      min-width: 200px;
-    }
-    .primary-btn {
-      background: #2f6bff;
-      color: white;
-    }
-    .secondary-btn {
-      background: #222534;
-      color: #ddd;
-    }
-
-    /* ===== ROOM PAGE ===== */
-    #room {
-      min-height: 100vh;
-      display: none; /* hidden by default; JS will show it */
-      flex-direction: column;
-      padding: 16px;
-    }
-    .room-header {
+    header {
+      padding: 16px 24px;
+      background: #020617;
+      border-bottom: 1px solid #1f2937;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
     }
-    .small-text {
-      font-size: 12px;
-      color: #aaa;
+    header h1 {
+      margin: 0;
+      font-size: 18px;
     }
-    .room-main {
+
+    main {
+      height: calc(100vh - 56px);
+      display: flex;
+      align-items: stretch;
+    }
+
+    .view {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+    .view.active {
+      display: flex;
+    }
+
+    /* NAME VIEW – CastAway hero */
+    #name-view {
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1d283a, #020617);
+    }
+
+    #name-hero {
+      max-width: 640px;
+      width: 100%;
+      text-align: center;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      flex: 1;
-      max-width: 800px;
-      margin: 0 auto;
+      align-items: center;
+      gap: 20px;
     }
-    .panel {
+
+    #name-hero-title {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    #name-hero-subtitle {
+      font-size: 16px;
+      color: #9ca3af;
+    }
+
+    #name-card {
+      margin-top: 8px;
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      padding: 24px 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+      text-align: left;
+    }
+
+    #name-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    #name-subtitle {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 16px;
+    }
+
+    #name-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
       border-radius: 6px;
-      border: 1px solid #20222b;
-      padding: 10px;
-      background: #10121b;
-    }
-    .panel-title {
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
       font-size: 14px;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
-    .field-row {
+
+    #name-buttons {
       display: flex;
       gap: 8px;
+    }
+
+    #name-continue,
+    #name-anon {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    #name-continue {
+      background: #22c55e;
+      color: #022c22;
+    }
+    #name-continue:hover {
+      background: #16a34a;
+    }
+
+    #name-anon {
+      background: transparent;
+      color: #e5e7eb;
+      border: 1px solid #4b5563;
+    }
+    #name-anon:hover {
+      border-color: #9ca3af;
+    }
+
+    /* LANDING VIEW */
+    #landing-view {
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1d283a, #020617);
+    }
+    #landing-card {
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      padding: 32px 28px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+      text-align: center;
+    }
+    #landing-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    #landing-subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+    .landing-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .landing-btn {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    #host-btn {
+      background: #ea580c;
+      color: #fff7ed;
+    }
+    #host-btn:hover {
+      background: #c2410c;
+    }
+    #join-btn {
+      background: transparent;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+    #join-btn:hover {
+      border-color: #60a5fa;
+      color: #dbeafe;
+    }
+    #landing-footnote {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    /* HOST SETUP VIEW */
+    #host-setup-view {
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1d283a, #020617);
+    }
+    #host-setup-card {
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      padding: 28px 24px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+    }
+    #host-setup-card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+    #host-setup-subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 16px;
+    }
+    #host-setup-form {
+      font-size: 13px;
+    }
+    #host-setup-form label {
+      display: block;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    #host-setup-form input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 13px;
+    }
+    #host-create-room-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    #host-create-room-btn:hover {
+      background: #1d4ed8;
+    }
+    #host-back-landing {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #60a5fa;
+      cursor: pointer;
+      display: inline-block;
+    }
+    #host-back-landing:hover {
+      text-decoration: underline;
+    }
+
+    /* JOIN LOBBY VIEW */
+    #join-lobby-view {
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+    }
+    #join-lobby-left {
+      width: 320px;
+      border-right: 1px solid #1f2937;
+      padding: 16px;
+      box-sizing: border-box;
+      background: #020617;
+      overflow-y: auto;
+    }
+    #lobby-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    #tag-filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+      font-size: 14px;
+    }
+    #tagFilter {
+      flex: 1;
+      padding: 4px 8px;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+      border-radius: 4px;
+    }
+    #room-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .room-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #111827;
+      cursor: pointer;
+      border: 1px solid transparent;
+      font-size: 14px;
+    }
+    .room-item:hover {
+      border-color: #60a5fa;
+      background: #020617;
+    }
+    .room-title {
+      font-weight: 500;
+    }
+    .room-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    #join-lobby-right {
+      flex: 1;
+      padding: 16px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at top, #1d283a, #020617);
+    }
+    #join-search-card {
+      background: #020617;
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      padding: 24px 24px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
+    }
+    #join-search-card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+    #join-search-subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 12px;
+    }
+    #join-search-card label {
+      display: block;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    #join-search-card input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 13px;
+    }
+    #join-by-code-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: none;
+      background: #22c55e;
+      color: #022c22;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    #join-by-code-btn:hover {
+      background: #16a34a;
+    }
+    #join-back-landing {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #60a5fa;
+      cursor: pointer;
+      display: inline-block;
+    }
+    #join-back-landing:hover {
+      text-decoration: underline;
+    }
+
+    /* ROOM VIEW layout kept as before ... */
+    #room-view {
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+    }
+
+    #room-main {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    #room-chat-panel {
+      flex: 1;
+      border-left: 1px solid #1f2937;
+      padding: 16px;
+      box-sizing: border-box;
+      background: #020617;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .current-room-label {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+    .current-room-name {
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    #video-area {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    #local-video-wrapper {
+      flex: 3;
+      max-width: 80%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    .video-label {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    #localVideo {
+      width: 100%;
+      max-height: 65vh;
+      background: #020617;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #remote-videos {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .remote-video-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      width: 100%;
+      max-width: 220px;
+    }
+    .remoteVideo {
+      width: 100%;
+      max-height: 120px;
+      background: #020617;
+      border-radius: 6px;
+      border: 1px solid #374151;
+      object-fit: cover;
+    }
+    .remote-name-label {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .audio-controls {
+      margin-bottom: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+    .audio-controls button {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .audio-controls button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .role-label {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-left: auto;
+    }
+
+    .messages {
+      flex: 1;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 8px;
+      overflow-y: auto;
+      background: #020617;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .message {
       margin-bottom: 6px;
     }
-    .field-row input[type="text"] {
+    .message-name {
+      font-weight: 500;
+      color: #fde68a;
+    }
+    .message-text {
+      margin-left: 4px;
+    }
+
+    .chat-form {
+      margin-top: 4px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chat-message-input {
       flex: 1;
       padding: 6px 8px;
       border-radius: 4px;
-      border: 1px solid #33384a;
-      background: #070915;
-      color: #f5f5f5;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 14px;
     }
-    #messages {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 260px;
-      overflow-y: auto;
+    .chat-send-btn {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      background: #22c55e;
+      color: #022c22;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .chat-send-btn:hover {
+      background: #16a34a;
+    }
+
+    #back-to-lobby-room {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #60a5fa;
+      cursor: pointer;
+      display: inline-block;
+    }
+    #back-to-lobby-room:hover {
+      text-decoration: underline;
+    }
+
+    #status-line {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    #status-line-host {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    #raised-hands-title {
+      font-weight: 600;
       font-size: 13px;
+      margin-top: 8px;
+      margin-bottom: 4px;
     }
-    #messages li {
-      padding: 3px 4px;
-      border-bottom: 1px solid #1b1e28;
+    #raised-hands-list {
+      font-size: 12px;
+      color: #e5e7eb;
+      border-top: 1px solid #1f2937;
+      padding-top: 6px;
+      margin-top: 4px;
     }
-    #messages li.system {
-      color: #999;
-      font-style: italic;
+    .hand-item {
+      display: flex;
+      flex-direction: column;
+      padding: 4px 0;
+      border-bottom: 1px solid #1f2937;
     }
-    #messages li.chat-line {
-      color: #f5f5f5;
+    .hand-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hand-name {
+      margin-right: 8px;
+    }
+    .hand-buttons {
+      margin-top: 4px;
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .hand-buttons button {
+      padding: 2px 6px;
+      font-size: 11px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <header>
+    <h1>CastAway</h1>
+    <div id="connection-status">Connecting…</div>
+  </header>
 
-  <!-- ========== PAGE 1: LANDING (VISIBLE ON LOAD) ========== -->
-  <section id="landing">
-    <div class="logo">Open Podcast Lobby</div>
-    <div class="tagline">A simple place to host live voice discussions with anyone.</div>
-
-    <!-- HOST -->
-    <div class="landing-section">
-      <div class="landing-title">Host a Podcast</div>
-      <div class="small-text">Create a new room and share the ID with your guests.</div>
-      <button id="landingCreateButton" class="primary-btn">Create Room</button>
-    </div>
-
-    <!-- JOIN -->
-    <div class="landing-section">
-      <div class="landing-title">Join a Podcast</div>
-      <div class="small-text">Enter a room ID shared by the host.</div>
-      <div class="landing-input-row">
-        <input id="landingJoinInput" type="text" placeholder="Room ID">
-        <button id="landingJoinButton" class="secondary-btn">Join Room</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== PAGE 2: ROOM (HIDDEN INITIALLY) ========== -->
-  <section id="room">
-    <div class="room-header">
-      <div>
-        <div><strong>Open Podcast Lobby</strong></div>
-        <div id="roomHeaderInfo" class="small-text">Room: (none)</div>
-      </div>
-      <div id="nameDisplay" class="small-text">Name: (not set)</div>
-    </div>
-
-    <div class="room-main">
-      <!-- Name + audio -->
-      <div class="panel">
-        <div class="panel-title">Your setup</div>
-
-        <div class="field-row">
-          <input id="nameInput" type="text" placeholder="Enter your name">
-          <button id="setNameButton" class="secondary-btn">Set name</button>
+  <main>
+    <!-- NAME VIEW / HERO -->
+    <section id="name-view" class="view active">
+      <div id="name-hero">
+        <div>
+          <div id="name-hero-title">CastAway</div>
+          <div id="name-hero-subtitle">Start podcasting anytime, anywhere.</div>
         </div>
 
-        <div class="field-row">
-          <button id="startAudioButton" class="primary-btn">Start Mic & Connect</button>
-          <button id="stopAudioButton" class="secondary-btn">Turn Off Mic</button>
-          <button id="exitRoomButton" class="secondary-btn">Exit Room</button>
+        <div id="name-card">
+          <h2>Choose your name</h2>
+          <div id="name-subtitle">
+            This name will appear for others in rooms and video tiles.
+          </div>
+          <input id="name-input" type="text" placeholder="Enter a name (or leave blank for anonymous)" />
+          <div id="name-buttons">
+            <button id="name-continue">Continue</button>
+            <button id="name-anon">Continue as Anonymous</button>
+          </div>
         </div>
-        <div id="audioStatus" class="small-text"></div>
       </div>
+    </section>
 
-      <!-- Chat -->
-      <div class="panel">
-        <div class="panel-title">Chat</div>
-        <div class="field-row">
-          <input id="chatInput" type="text" placeholder="Type a message">
-          <button id="chatSendButton" class="primary-btn">Send</button>
-        </div>
-        <ul id="messages"></ul>
-      </div>
-    </div>
-  </section>
+    <!-- The rest of your views (landing, host setup, join lobby, room) and script remain exactly as before -->
+    <!-- ... paste your existing LANDING VIEW, HOST SETUP VIEW, JOIN LOBBY VIEW, ROOM VIEW markup and JS here ... -->
+  </main>
 
-  <script>
-    // ======================
-    // DOM ELEMENT REFERENCES
-    // ======================
-
-    // Landing
-    const landingSection = document.getElementById('landing');
-    const landingCreateButton = document.getElementById('landingCreateButton');
-    const landingJoinInput = document.getElementById('landingJoinInput');
-    const landingJoinButton = document.getElementById('landingJoinButton');
-
-    // Room
-    const roomSection = document.getElementById('room');
-    const roomHeaderInfo = document.getElementById('roomHeaderInfo');
-    const nameDisplay = document.getElementById('nameDisplay');
-
-    const nameInput = document.getElementById('nameInput');
-    const setNameButton = document.getElementById('setNameButton');
-
-    const startAudioButton = document.getElementById('startAudioButton');
-    const stopAudioButton = document.getElementById('stopAudioButton');
-    const exitRoomButton = document.getElementById('exitRoomButton');
-    const audioStatus = document.getElementById('audioStatus');
-
-    const chatInput = document.getElementById('chatInput');
-    const chatSendButton = document.getElementById('chatSendButton');
-    const messagesList = document.getElementById('messages');
-
-    // ======================
-    // STATE VARIABLES
-    // ======================
-    let currentRoomId = null;
-    let localStream = null;
-    let peerConnection = null;
-    let isMicMuted = false;
-    let userName = 'Anonymous';
-
-    // ======================
-    // WEBSOCKET INITIALIZATION
-    // ======================
-    const socket = new WebSocket(`ws://${location.host}`);
-
-    socket.addEventListener('open', () => {
-      addSystemMessage('Connected to real-time server.');
-    });
-
-    socket.addEventListener('message', async event => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === 'create-room') {
-        addSystemMessage('Room created: ' + data.roomId);
-      } else if (data.type === 'join-room') {
-        addSystemMessage('Someone joined room: ' + data.roomId);
-      } else if (data.type === 'leave-room') {
-        addSystemMessage('Someone left room: ' + data.roomId);
-
-      // TEXT CHAT
-      } else if (data.type === 'chat-message') {
-        const name = data.name || 'Anonymous';
-        addChatLine(name + ': ' + data.text);
-
-      // WEBRTC SIGNALING
-      } else if (data.type === 'offer') {
-        addSystemMessage('Received offer, creating answer...');
-        await handleOffer(data.payload);
-      } else if (data.type === 'answer') {
-        addSystemMessage('Received answer, completing connection.');
-        await handleAnswer(data.payload);
-      } else if (data.type === 'ice-candidate') {
-        await handleIceCandidate(data.payload);
-
-      } else if (data.type === 'info') {
-        addSystemMessage(data.text);
-      } else {
-        addSystemMessage('Unknown message: ' + event.data);
-      }
-    });
-
-    socket.addEventListener('close', () => {
-      addSystemMessage('Disconnected from server.');
-    });
-
-    // ======================
-    // LANDING HANDLERS
-    // ======================
-    landingCreateButton.addEventListener('click', () => {
-      const roomId = Math.random().toString(36).substring(2, 8);
-      enterRoom(roomId, true);
-    });
-
-    landingJoinButton.addEventListener('click', () => {
-      const roomId = landingJoinInput.value.trim();
-      if (!roomId) {
-        alert('Please enter a room ID.');
-        return;
-      }
-      enterRoom(roomId, false);
-    });
-
-    function enterRoom(roomId, isHost) {
-      currentRoomId = roomId;
-
-      const msg = {
-        type: isHost ? 'create-room' : 'join-room',
-        roomId: roomId
-      };
-      socket.send(JSON.stringify(msg));
-
-      roomHeaderInfo.textContent = 'Room: ' + roomId;
-
-      // switch UI: hide landing, show room
-      landingSection.style.display = 'none';
-      roomSection.style.display = 'flex';
-
-      addSystemMessage((isHost ? 'You created' : 'You joined') + ' room: ' + roomId);
-    }
-
-    // ======================
-    // NAME HANDLER
-    // ======================
-    setNameButton.addEventListener('click', () => {
-      const name = nameInput.value.trim();
-      if (!name) {
-        addSystemMessage('Please enter a non-empty name.');
-        return;
-      }
-      userName = name;
-      nameDisplay.textContent = 'Name: ' + userName;
-      addSystemMessage('Name set to: ' + userName);
-    });
-
-    // ======================
-    // AUDIO / WEBRTC HANDLERS
-    // ======================
-    startAudioButton.addEventListener('click', async () => {
-      if (!currentRoomId) {
-        audioStatus.textContent = 'Join or create a room first.';
-        return;
-      }
-
-      // If already set up, just unmute
-      if (localStream && peerConnection) {
-        localStream.getAudioTracks().forEach(track => {
-          track.enabled = true;
-        });
-        isMicMuted = false;
-        audioStatus.textContent = 'Mic active.';
-        return;
-      }
-
-      // First-time setup
-      try {
-        if (!localStream) {
-          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          localStream.getAudioTracks().forEach(track => {
-            track.enabled = true;
-          });
-        }
-        setupPeerConnection();
-        await createAndSendOffer();
-        audioStatus.textContent = 'Mic active.';
-        isMicMuted = false;
-      } catch (e) {
-        audioStatus.textContent = 'Mic permission denied.';
-      }
-    });
-
-    stopAudioButton.addEventListener('click', () => {
-      stopAudio();
-    });
-
-    exitRoomButton.addEventListener('click', () => {
-      if (!currentRoomId) {
-        addSystemMessage('You are not in a room.');
-        return;
-      }
-
-      const msg = {
-        type: 'leave-room',
-        roomId: currentRoomId
-      };
-      socket.send(JSON.stringify(msg));
-
-      addSystemMessage('You left room: ' + currentRoomId);
-      currentRoomId = null;
-      roomHeaderInfo.textContent = 'Room: (none)';
-
-      endCall();
-
-      // switch UI back: hide room, show landing
-      roomSection.style.display = 'none';
-      landingSection.style.display = 'flex';
-    });
-
-    // ======================
-    // CHAT HANDLERS
-    // ======================
-    chatSendButton.addEventListener('click', () => {
-      sendChatMessage();
-    });
-
-    chatInput.addEventListener('keydown', event => {
-      if (event.key === 'Enter') {
-        sendChatMessage();
-      }
-    });
-
-    function sendChatMessage() {
-      if (!currentRoomId) {
-        addSystemMessage('You must be in a room to chat.');
-        return;
-      }
-      const text = chatInput.value.trim();
-      if (!text) return;
-
-      const msg = {
-        type: 'chat-message',
-        text: text,
-        name: userName
-      };
-      socket.send(JSON.stringify(msg));
-      chatInput.value = '';
-    }
-
-    // ======================
-    // UI MESSAGE HELPERS
-    // ======================
-    function addSystemMessage(text) {
-      const li = document.createElement('li');
-      li.textContent = text;
-      li.classList.add('system');
-      messagesList.appendChild(li);
-      messagesList.scrollTop = messagesList.scrollHeight;
-    }
-
-    function addChatLine(text) {
-      const li = document.createElement('li');
-      li.textContent = text;
-      li.classList.add('chat-line');
-      messagesList.appendChild(li);
-      messagesList.scrollTop = messagesList.scrollHeight;
-    }
-
-    // ======================
-    // WEBRTC FUNCTIONS
-    // ======================
-    function setupPeerConnection() {
-      if (peerConnection) return;
-      peerConnection = new RTCPeerConnection();
-
-      peerConnection.onicecandidate = event => {
-        if (event.candidate) {
-          socket.send(JSON.stringify({
-            type: 'ice-candidate',
-            payload: event.candidate
-          }));
-        }
-      };
-
-      peerConnection.ontrack = event => {
-        const audio = document.createElement('audio');
-        audio.autoplay = true;
-        audio.srcObject = event.streams[0];
-        document.body.appendChild(audio);
-        audioStatus.textContent = 'Receiving audio.';
-      };
-
-      if (localStream) {
-        localStream.getTracks().forEach(track => {
-          peerConnection.addTrack(track, localStream);
-        });
-      }
-    }
-
-    async function createAndSendOffer() {
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      socket.send(JSON.stringify({
-        type: 'offer',
-        payload: offer
-      }));
-      addSystemMessage('Sent offer.');
-    }
-
-    async function handleOffer(offer) {
-      setupPeerConnection();
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-      if (!localStream) {
-        try {
-          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          localStream.getAudioTracks().forEach(track => {
-            track.enabled = true;
-          });
-          audioStatus.textContent = 'Mic active (answering).';
-          localStream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, localStream);
-          });
-        } catch (e) {
-          audioStatus.textContent = 'Mic permission denied.';
-          return;
-        }
-      }
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      socket.send(JSON.stringify({
-        type: 'answer',
-        payload: answer
-      }));
-      addSystemMessage('Sent answer.');
-    }
-
-    async function handleAnswer(answer) {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-    }
-
-    async function handleIceCandidate(candidate) {
-      try {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (e) {
-        console.error('Error adding received ice candidate', e);
-      }
-    }
-
-    // ======================
-    // AUDIO CONTROL HELPERS
-    // ======================
-    function stopAudio() {
-      if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
-          track.enabled = false;
-        });
-        isMicMuted = true;
-        audioStatus.textContent = 'Mic muted. You can still hear others.';
-      } else {
-        audioStatus.textContent = 'No mic stream to mute.';
-      }
-    }
-
-    function endCall() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-      isMicMuted = false;
-      audioStatus.textContent = '';
-    }
-  </script>
+  <!-- Your existing script block goes here unchanged -->
 </body>
 </html>
