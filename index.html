@@ -396,7 +396,7 @@
       text-decoration: underline;
     }
 
-    /* ROOM VIEW layout kept as before ... */
+    /* ROOM VIEW */
     #room-view {
       flex-direction: row;
       width: 100%;
@@ -658,10 +658,876 @@
       </div>
     </section>
 
-    <!-- The rest of your views (landing, host setup, join lobby, room) and script remain exactly as before -->
-    <!-- ... paste your existing LANDING VIEW, HOST SETUP VIEW, JOIN LOBBY VIEW, ROOM VIEW markup and JS here ... -->
+    <!-- LANDING VIEW -->
+    <section id="landing-view" class="view">
+      <div id="landing-card">
+        <div id="landing-title">Drop into a live room</div>
+        <div id="landing-subtitle">
+          Browse open rooms or host your own lobby for politics, finance, or anything else.
+        </div>
+        <div class="landing-buttons">
+          <button id="host-btn" class="landing-btn">Host</button>
+          <button id="join-btn" class="landing-btn">Join</button>
+        </div>
+        <div id="landing-footnote">
+          No login. Just pick a name inside and start talking.
+        </div>
+      </div>
+    </section>
+
+    <!-- HOST SETUP VIEW -->
+    <section id="host-setup-view" class="view">
+      <div id="host-setup-card">
+        <h2>Host a room</h2>
+        <div id="host-setup-subtitle">
+          Create a new room that listeners can find in the lobby or join by ID.
+        </div>
+        <div id="host-setup-form">
+          <label for="hostRoomIdInput">Room ID (no spaces)</label>
+          <input id="hostRoomIdInput" type="text" placeholder="e.g. us-election-chat" />
+
+          <label for="hostRoomTitleInput">Room title</label>
+          <input id="hostRoomTitleInput" type="text" placeholder="e.g. US Election Chat" />
+
+          <label for="hostRoomTagsInput">Tags (comma-separated)</label>
+          <input id="hostRoomTagsInput" type="text" placeholder="e.g. politics, finance" />
+
+          <button id="host-create-room-btn">Create & go live</button>
+        </div>
+        <div id="host-back-landing">← Back</div>
+      </div>
+    </section>
+
+    <!-- JOIN LOBBY VIEW -->
+    <section id="join-lobby-view" class="view">
+      <aside id="join-lobby-left">
+        <div id="lobby-title">Lobby</div>
+        <div id="tag-filter-row">
+          <span>Filter by tag:</span>
+          <select id="tagFilter">
+            <option value="">All</option>
+            <option value="politics">Politics</option>
+            <option value="finance">Finance</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+        <div id="room-list"></div>
+      </aside>
+
+      <section id="join-lobby-right">
+        <div id="join-search-card">
+          <h2>Find a room</h2>
+          <div id="join-search-subtitle">
+            Click a room on the left, or search by name or ID.
+          </div>
+
+          <label for="roomSearchInput">Search by title</label>
+          <input id="roomSearchInput" type="text" placeholder="Search title..." />
+
+          <label for="roomCodeInput">Or enter room ID</label>
+          <input id="roomCodeInput" type="text" placeholder="Exact room ID..." />
+
+          <button id="join-by-code-btn">Join by ID</button>
+
+          <div id="join-back-landing">← Back</div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ROOM VIEW -->
+    <section id="room-view" class="view">
+      <section id="room-main">
+        <div class="current-room-label">
+          Current room:
+          <span id="current-room-name" class="current-room-name">None</span>
+        </div>
+
+        <div id="video-area">
+          <div id="local-video-wrapper">
+            <div class="video-label">You</div>
+            <video id="localVideo" autoplay playsinline muted></video>
+          </div>
+          <div id="remote-videos"></div>
+        </div>
+
+        <div class="audio-controls">
+          <button id="mic-on">Mic on</button>
+          <button id="mic-off" disabled>Mic off</button>
+          <button id="cam-on">Camera on</button>
+          <button id="cam-off" disabled>Camera off</button>
+          <button id="raise-hand-btn-room">Raise hand</button>
+          <span id="role-label" class="role-label"></span>
+        </div>
+
+        <form id="chat-form-room" class="chat-form">
+          <input id="messageInputRoom" class="chat-message-input" type="text" placeholder="Type a message…" />
+          <button id="sendBtnRoom" class="chat-send-btn" type="submit">Send</button>
+        </form>
+
+        <div id="status-line"></div>
+        <div id="status-line-host"></div>
+        <div id="back-to-lobby-room">← Back to lobby</div>
+      </section>
+
+      <aside id="room-chat-panel">
+        <div id="room-side-header">Chat</div>
+        <div id="messages-room" class="messages"></div>
+        <div id="raised-hands-title">Raised hands</div>
+        <div id="raised-hands-list"></div>
+      </aside>
+    </section>
   </main>
 
-  <!-- Your existing script block goes here unchanged -->
+  <script>
+    const nameView       = document.getElementById("name-view");
+    const nameInputEl    = document.getElementById("name-input");
+    const nameContinue   = document.getElementById("name-continue");
+    const nameAnon       = document.getElementById("name-anon");
+
+    const landingView    = document.getElementById("landing-view");
+    const hostSetupView  = document.getElementById("host-setup-view");
+    const joinLobbyView  = document.getElementById("join-lobby-view");
+    const roomView       = document.getElementById("room-view");
+
+    const hostBtn        = document.getElementById("host-btn");
+    const joinBtn        = document.getElementById("join-btn");
+    const hostBackLanding = document.getElementById("host-back-landing");
+    const joinBackLanding = document.getElementById("join-back-landing");
+    const backToLobbyRoom = document.getElementById("back-to-lobby-room");
+
+    function showView(view) {
+      [nameView, landingView, hostSetupView, joinLobbyView, roomView]
+        .forEach(v => v.classList.remove("active"));
+      view.classList.add("active");
+    }
+
+    const WS_URL =
+      (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
+    const socket = new WebSocket(WS_URL);
+
+    let myDisplayName = "Anonymous";
+
+    function sendSetName() {
+      const name = (myDisplayName || "").trim();
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: "set-name",
+          name
+        }));
+      } else {
+        socket.addEventListener("open", () => {
+          socket.send(JSON.stringify({
+            type: "set-name",
+            name
+          }));
+        }, { once: true });
+      }
+    }
+
+    nameContinue.addEventListener("click", () => {
+      const val = (nameInputEl.value || "").trim();
+      myDisplayName = val || "Anonymous";
+      sendSetName();
+      showView(landingView);
+    });
+
+    nameAnon.addEventListener("click", () => {
+      myDisplayName = "Anonymous";
+      sendSetName();
+      showView(landingView);
+    });
+
+    const connectionStatus = document.getElementById("connection-status");
+
+    socket.addEventListener("open", () => {
+      connectionStatus.textContent = "Connected";
+      connectionStatus.style.color = "#22c55e";
+      sendSetName();
+    });
+
+    socket.addEventListener("close", () => {
+      connectionStatus.textContent = "Disconnected";
+      connectionStatus.style.color = "#f97316";
+    });
+
+    socket.addEventListener("error", () => {
+      connectionStatus.textContent = "Error";
+      connectionStatus.style.color = "#ef4444";
+    });
+
+    hostBtn.addEventListener("click", () => {
+      showView(hostSetupView);
+    });
+
+    joinBtn.addEventListener("click", () => {
+      showView(joinLobbyView);
+      requestRooms();
+    });
+
+    hostBackLanding.addEventListener("click", () => {
+      showView(landingView);
+    });
+
+    joinBackLanding.addEventListener("click", () => {
+      showView(landingView);
+    });
+
+    const roomListDiv = document.getElementById("room-list");
+    const tagFilterSelect = document.getElementById("tagFilter");
+    const roomSearchInput = document.getElementById("roomSearchInput");
+    const roomCodeInput   = document.getElementById("roomCodeInput");
+    const joinByCodeBtn   = document.getElementById("join-by-code-btn");
+
+    const hostRoomIdInput    = document.getElementById("hostRoomIdInput");
+    const hostRoomTitleInput = document.getElementById("hostRoomTitleInput");
+    const hostRoomTagsInput  = document.getElementById("hostRoomTagsInput");
+    const hostCreateRoomBtn  = document.getElementById("host-create-room-btn");
+
+    const currentRoomName = document.getElementById("current-room-name");
+    const messagesRoom = document.getElementById("messages-room");
+    const chatFormRoom = document.getElementById("chat-form-room");
+    const messageInputRoom = document.getElementById("messageInputRoom");
+    const statusLine = document.getElementById("status-line");
+    const statusLineHost = document.getElementById("status-line-host");
+    const roleLabel = document.getElementById("role-label");
+
+    const micOnBtn = document.getElementById("mic-on");
+    const micOffBtn = document.getElementById("mic-off");
+    const camOnBtn = document.getElementById("cam-on");
+    const camOffBtn = document.getElementById("cam-off");
+    const raiseHandBtnRoom = document.getElementById("raise-hand-btn-room");
+
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideosContainer = document.getElementById("remote-videos");
+    const raisedHandsList = document.getElementById("raised-hands-list");
+
+    let currentRoomId = null;
+    let mode = null;
+    let canSpeak = false;
+    let handRaised = false;
+    let isHost = false;
+    const listenersById = {};
+    let lastRoomsList = [];
+    const peerNames = {};
+
+    let localStream = null;
+    const peerConnections = {};
+    const remoteStreams = {};
+    const remoteVideoEls = {};
+
+    function addMessage(container, name, text) {
+      const div = document.createElement("div");
+      div.className = "message";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "message-name";
+      nameSpan.textContent = name || "Anonymous";
+      const textSpan = document.createElement("span");
+      textSpan.className = "message-text";
+      textSpan.textContent = ": " + text;
+      div.appendChild(nameSpan);
+      div.appendChild(textSpan);
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function requestRooms(tag) {
+      if (socket.readyState !== WebSocket.OPEN) return;
+      const payload = { type: "list-rooms" };
+      if (tag) payload.tag = tag;
+      socket.send(JSON.stringify(payload));
+    }
+
+    function renderLobby(rooms) {
+      lastRoomsList = rooms || [];
+      const searchTerm = (roomSearchInput.value || "").trim().toLowerCase();
+
+      roomListDiv.innerHTML = "";
+      let displayRooms = lastRoomsList;
+
+      if (searchTerm) {
+        displayRooms = displayRooms.filter(r =>
+          (r.title || "").toLowerCase().includes(searchTerm)
+        );
+      }
+
+      if (!displayRooms.length) {
+        const empty = document.createElement("div");
+        empty.textContent = "No rooms match. Try another search.";
+        empty.style.fontSize = "13px";
+        empty.style.color = "#9ca3af";
+        roomListDiv.appendChild(empty);
+        return;
+      }
+
+      displayRooms.forEach(room => {
+        const div = document.createElement("div");
+        div.className = "room-item";
+
+        const title = document.createElement("div");
+        title.className = "room-title";
+        title.textContent = room.title;
+
+        const meta = document.createElement("div");
+        meta.className = "room-meta";
+        const tagsText = room.tags && room.tags.length
+          ? room.tags.join(", ")
+          : "no tags";
+        meta.textContent = `${tagsText} • ${room.participantCount} listening`;
+
+        div.appendChild(title);
+        div.appendChild(meta);
+
+        div.onclick = () => {
+          mode = "join";
+          joinRoom(room.roomId);
+        };
+
+        roomListDiv.appendChild(div);
+      });
+    }
+
+    tagFilterSelect.addEventListener("change", () => {
+      const tag = tagFilterSelect.value || null;
+      requestRooms(tag);
+    });
+
+    roomSearchInput.addEventListener("input", () => {
+      renderLobby(lastRoomsList);
+    });
+
+    function joinRoom(roomId) {
+      socket.send(JSON.stringify({
+        type: "join-room",
+        roomId
+      }));
+    }
+
+    joinByCodeBtn.addEventListener("click", () => {
+      const roomId = (roomCodeInput.value || "").trim();
+      if (!roomId) {
+        alert("Enter a room ID.");
+        return;
+      }
+      mode = "join";
+      joinRoom(roomId);
+    });
+
+    hostCreateRoomBtn.addEventListener("click", () => {
+      mode = "host";
+      const roomId = (hostRoomIdInput.value || "").trim();
+      const roomTitle = (hostRoomTitleInput.value || "").trim() || roomId;
+      const tagsRaw = (hostRoomTagsInput.value || "").trim();
+
+      if (!roomId) {
+        alert("Please enter a room ID.");
+        return;
+      }
+
+      const tags = tagsRaw
+        ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean)
+        : [];
+
+      socket.send(JSON.stringify({
+        type: "create-room",
+        roomId,
+        title: roomTitle,
+        tags
+      }));
+    });
+
+    backToLobbyRoom.addEventListener("click", () => {
+      if (currentRoomId) {
+        socket.send(JSON.stringify({
+          type: "leave-room",
+          roomId: currentRoomId
+        }));
+      }
+      resetRoomState();
+      showView(joinLobbyView);
+      requestRooms(tagFilterSelect.value || null);
+    });
+
+    function resetRoomState() {
+      currentRoomId = null;
+      currentRoomName.textContent = "None";
+      messagesRoom.innerHTML = "";
+      canSpeak = false;
+      handRaised = false;
+      isHost = false;
+      roleLabel.textContent = "";
+      updateMicButtons(false);
+      camOnBtn.disabled = false;
+      camOffBtn.disabled = true;
+      raiseHandBtnRoom.textContent = "Raise hand";
+      raiseHandBtnRoom.disabled = false;
+      raiseHandBtnRoom.style.visibility = "visible";
+      statusLine.textContent = "";
+      statusLineHost.textContent = "";
+      for (const k in listenersById) delete listenersById[k];
+      for (const k in peerNames) delete peerNames[k];
+      renderRaisedHands();
+      hangupAll();
+    }
+
+    chatFormRoom.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!currentRoomId) {
+        alert("Join or create a room first.");
+        return;
+      }
+      const text = (messageInputRoom.value || "").trim();
+      if (!text) return;
+
+      socket.send(JSON.stringify({
+        type: "chat-message",
+        name: myDisplayName,
+        text
+      }));
+      messageInputRoom.value = "";
+    });
+
+    async function ensureLocalStream() {
+      if (localStream) return true;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        });
+      } catch (err) {
+        console.error("getUserMedia error:", err);
+        alert("Could not access microphone or camera.");
+        return false;
+      }
+      localStream.getAudioTracks().forEach(t => (t.enabled = false));
+      localStream.getVideoTracks().forEach(t => (t.enabled = false));
+      localVideo.srcObject = localStream;
+      localVideo.style.transform = "scaleX(-1)";
+      return true;
+    }
+
+    function getOrCreatePC(remoteId) {
+      if (peerConnections[remoteId]) return peerConnections[remoteId];
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      });
+      peerConnections[remoteId] = pc;
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.send(JSON.stringify({
+            type: "ice-candidate",
+            to: remoteId,
+            payload: event.candidate
+          }));
+        }
+      };
+
+      pc.ontrack = (event) => {
+        const stream = event.streams[0] || new MediaStream([event.track]);
+        remoteStreams[remoteId] = stream;
+
+        let videoEl = remoteVideoEls[remoteId];
+        if (!videoEl) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "remote-video-tile";
+
+          videoEl = document.createElement("video");
+          videoEl.autoplay = true;
+          videoEl.playsInline = true;
+          videoEl.className = "remoteVideo";
+          videoEl.dataset.remoteId = remoteId;
+          wrapper.appendChild(videoEl);
+
+          const label = document.createElement("div");
+          label.className = "remote-name-label";
+          label.textContent = peerNames[remoteId] || `User ${remoteId}`;
+          wrapper.appendChild(label);
+
+          remoteVideosContainer.appendChild(wrapper);
+          remoteVideoEls[remoteId] = videoEl;
+        }
+        videoEl.srcObject = stream;
+      };
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      }
+
+      return pc;
+    }
+
+    async function callPeer(remoteId) {
+      const ok = await ensureLocalStream();
+      if (!ok) return;
+
+      const pc = getOrCreatePC(remoteId);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      socket.send(JSON.stringify({
+        type: "offer",
+        to: remoteId,
+        payload: offer
+      }));
+    }
+
+    function resetRemoteMedia() {
+      Object.values(remoteVideoEls).forEach(v => {
+        v.srcObject = null;
+        if (v.parentNode) v.parentNode.remove();
+      });
+      for (const k in remoteStreams) delete remoteStreams[k];
+      for (const k in remoteVideoEls) delete remoteVideoEls[k];
+    }
+
+    function hangupAll() {
+      Object.values(peerConnections).forEach(pc => pc.close());
+      for (const k in peerConnections) delete peerConnections[k];
+
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+      localVideo.srcObject = null;
+      resetRemoteMedia();
+    }
+
+    async function turnMicOn() {
+      if (!currentRoomId) {
+        alert("Join or create a room first.");
+        return;
+      }
+      const ok = await ensureLocalStream();
+      if (!ok) return;
+
+      if (isHost) {
+        if (localStream) {
+          localStream.getAudioTracks().forEach(t => (t.enabled = true));
+        }
+        canSpeak = true;
+        updateMicButtons(true);
+        statusLine.textContent = "";
+        return;
+      }
+
+      if (!canSpeak) {
+        statusLine.textContent = "Host must allow you to speak. Raise your hand first.";
+        if (localStream) {
+          localStream.getAudioTracks().forEach(t => (t.enabled = false));
+        }
+        updateMicButtons(false);
+        return;
+      }
+
+      if (localStream) {
+        localStream.getAudioTracks().forEach(t => (t.enabled = true));
+      }
+      updateMicButtons(true);
+      statusLine.textContent = "You can speak.";
+    }
+
+    function turnMicOff() {
+      if (localStream) {
+        localStream.getAudioTracks().forEach(t => (t.enabled = false));
+      }
+      updateMicButtons(false);
+    }
+
+    async function turnCamOn() {
+      if (!currentRoomId) {
+        alert("Join or create a room first.");
+        return;
+      }
+      const ok = await ensureLocalStream();
+      if (!ok) return;
+
+      if (localStream) {
+        localStream.getVideoTracks().forEach(t => (t.enabled = true));
+      }
+      camOnBtn.disabled = true;
+      camOffBtn.disabled = false;
+    }
+
+    function turnCamOff() {
+      if (localStream) {
+        localStream.getVideoTracks().forEach(t => (t.enabled = false));
+      }
+      camOnBtn.disabled = false;
+      camOffBtn.disabled = true;
+    }
+
+    function updateMicButtons(micOn) {
+      micOnBtn.disabled = micOn;
+      micOffBtn.disabled = !micOn;
+    }
+
+    micOnBtn.addEventListener("click", turnMicOn);
+    micOffBtn.addEventListener("click", turnMicOff);
+    camOnBtn.addEventListener("click", turnCamOn);
+    camOffBtn.addEventListener("click", turnCamOff);
+    camOffBtn.disabled = true;
+
+    raiseHandBtnRoom.addEventListener("click", () => {
+      if (!currentRoomId) {
+        alert("Join a room first.");
+        return;
+      }
+      if (isHost) return;
+
+      handRaised = !handRaised;
+      raiseHandBtnRoom.textContent = handRaised ? "Lower hand" : "Raise hand";
+
+      socket.send(JSON.stringify({
+        type: "raise-hand",
+        raised: handRaised
+      }));
+    });
+
+    function renderRaisedHands() {
+      raisedHandsList.innerHTML = "";
+      const ids = Object.keys(listenersById);
+      if (!ids.length) {
+        const div = document.createElement("div");
+        div.textContent = "No pending requests.";
+        div.style.color = "#9ca3af";
+        raisedHandsList.appendChild(div);
+        return;
+      }
+
+      ids.forEach(userId => {
+        const info = listenersById[userId];
+        if (!info.raised && !info.allowedAudio && !info.allowedVideo) return;
+
+        const item = document.createElement("div");
+        item.className = "hand-item";
+
+        const topRow = document.createElement("div");
+        topRow.className = "hand-row-top";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "hand-name";
+        const dispName = peerNames[userId] || `User ${userId}`;
+        nameSpan.textContent = `${dispName} ${info.raised ? "✋" : ""}`;
+        topRow.appendChild(nameSpan);
+        item.appendChild(topRow);
+
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.className = "hand-buttons";
+
+        const audioBtn = document.createElement("button");
+        audioBtn.textContent = info.allowedAudio ? "Mute audio" : "Allow audio";
+        audioBtn.onclick = () => {
+          const allowed = !info.allowedAudio;
+          socket.send(JSON.stringify({
+            type: "allow-speak",
+            userId,
+            allowed
+          }));
+          info.allowedAudio = allowed;
+          if (!allowed && !info.raised && !info.allowedVideo) {
+            delete listenersById[userId];
+          }
+          renderRaisedHands();
+        };
+        buttonsDiv.appendChild(audioBtn);
+
+        const videoBtn = document.createElement("button");
+        videoBtn.textContent = info.allowedVideo ? "Hide video" : "Show video";
+        videoBtn.onclick = () => {
+          const allowed = !info.allowedVideo;
+          socket.send(JSON.stringify({
+            type: "host-hide-video",
+            userId,
+            allowed
+          }));
+          info.allowedVideo = allowed;
+          if (!allowed && !info.raised && !info.allowedAudio) {
+            delete listenersById[userId];
+          }
+          renderRaisedHands();
+        };
+        buttonsDiv.appendChild(videoBtn);
+
+        item.appendChild(buttonsDiv);
+        raisedHandsList.appendChild(item);
+      });
+
+      if (!raisedHandsList.innerHTML.trim()) {
+        const div = document.createElement("div");
+        div.textContent = "No pending requests.";
+        div.style.color = "#9ca3af";
+        raisedHandsList.appendChild(div);
+      }
+    }
+
+    socket.addEventListener("message", async (event) => {
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      if (data.type === "rooms-list") {
+        renderLobby(data.rooms);
+
+      } else if (data.type === "create-room") {
+        currentRoomId = data.roomId;
+        currentRoomName.textContent = data.title || data.roomId;
+        statusLineHost.textContent = "Created room: " + (data.title || data.roomId);
+        isHost = true;
+        mode = "host";
+        canSpeak = true;
+        roleLabel.textContent = "Role: Host";
+        updateMicButtons(false);
+        raiseHandBtnRoom.disabled = true;
+        raiseHandBtnRoom.style.visibility = "hidden";
+        showView(roomView);
+
+      } else if (data.type === "join-room") {
+        currentRoomId = data.roomId;
+        currentRoomName.textContent = data.roomId;
+        statusLine.textContent = "Joined room: " + data.roomId;
+        isHost = false;
+        mode = "join";
+        canSpeak = false;
+        roleLabel.textContent = "Role: Listener";
+        updateMicButtons(false);
+        raiseHandBtnRoom.disabled = false;
+        raiseHandBtnRoom.style.visibility = "visible";
+        showView(roomView);
+
+      } else if (data.type === "room-peers") {
+        const peers = data.peers || [];
+        for (const p of peers) {
+          peerNames[p.id] = p.name || "Anonymous";
+        }
+        for (const p of peers) {
+          await callPeer(p.id);
+        }
+
+      } else if (data.type === "peer-joined") {
+        const newPeerId = data.userId;
+        const name = data.name || "Anonymous";
+        if (newPeerId) {
+          peerNames[newPeerId] = name;
+        }
+
+      } else if (data.type === "name-updated") {
+        const { userId, name } = data;
+        peerNames[userId] = name || "Anonymous";
+
+        const tiles = remoteVideosContainer.querySelectorAll(".remote-video-tile");
+        tiles.forEach(tile => {
+          const vid = tile.querySelector("video");
+          const label = tile.querySelector(".remote-name-label");
+          if (!vid || !label) return;
+          if (vid.dataset.remoteId === userId) {
+            label.textContent = peerNames[userId];
+          }
+        });
+        renderRaisedHands();
+
+      } else if (data.type === "leave-room") {
+        if (data.roomId === currentRoomId) {
+          resetRoomState();
+          showView(joinLobbyView);
+          requestRooms(tagFilterSelect.value || null);
+        }
+
+      } else if (data.type === "chat-message") {
+        addMessage(messagesRoom, data.name, data.text);
+
+      } else if (data.type === "hand-updated") {
+        const { userId, raised } = data;
+        if (!listenersById[userId]) {
+          listenersById[userId] = { raised: false, allowedAudio: false, allowedVideo: false };
+        }
+        listenersById[userId].raised = raised;
+        if (!raised && !listenersById[userId].allowedAudio && !listenersById[userId].allowedVideo) {
+          delete listenersById[userId];
+        }
+        renderRaisedHands();
+
+      } else if (data.type === "speak-permission") {
+        if (isHost) return;
+        canSpeak = !!data.allowed;
+        statusLine.textContent = canSpeak
+          ? "Host allowed you to speak. Turn your mic on when ready."
+          : "You’re muted by the host.";
+
+        if (!canSpeak && localStream) {
+          localStream.getAudioTracks().forEach(t => (t.enabled = false));
+          updateMicButtons(false);
+        }
+
+      } else if (data.type === "speak-permission-updated") {
+        const { userId, allowed } = data;
+        if (!listenersById[userId]) {
+          listenersById[userId] = { raised: false, allowedAudio: false, allowedVideo: false };
+        }
+        listenersById[userId].allowedAudio = allowed;
+        renderRaisedHands();
+
+      } else if (data.type === "remote-audio-control") {
+        if (isHost) return;
+        canSpeak = !!data.allowed;
+        if (!canSpeak && localStream) {
+          localStream.getAudioTracks().forEach(t => (t.enabled = false));
+          updateMicButtons(false);
+        }
+        statusLine.textContent = canSpeak
+          ? "Host turned your audio on. You may enable your mic."
+          : "Host muted your audio.";
+
+      } else if (data.type === "remote-video-control") {
+        if (localStream) {
+          localStream.getVideoTracks().forEach(t => (t.enabled = !!data.allowed));
+        }
+        statusLine.textContent = data.allowed
+          ? "Host turned your video on."
+          : "Host turned your video off.";
+
+      } else if (data.type === "offer") {
+        const remoteId = data.from;
+        const ok = await ensureLocalStream();
+        if (!ok) return;
+        const pc = getOrCreatePC(remoteId);
+        await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+
+        if (localStream && pc.getSenders().length === 0) {
+          localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        }
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.send(JSON.stringify({
+          type: "answer",
+          to: remoteId,
+          payload: answer
+        }));
+
+      } else if (data.type === "answer") {
+        const remoteId = data.from;
+        const pc = peerConnections[remoteId];
+        if (pc) {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+        }
+
+      } else if (data.type === "ice-candidate") {
+        const remoteId = data.from;
+        const pc = peerConnections[remoteId];
+        if (pc) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+          } catch (err) {
+            console.error("Error adding ICE candidate:", err);
+          }
+        }
+      }
+    });
+  </script>
 </body>
 </html>
